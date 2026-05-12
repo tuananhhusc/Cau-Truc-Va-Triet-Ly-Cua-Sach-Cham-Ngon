@@ -67,10 +67,13 @@ const renderTextWithRefs = (nodes: React.ReactNode, refs: Record<string, string>
     if (typeof child === "string") {
       return processReferences(child, refs);
     }
-    if (React.isValidElement(child) && child.props.children) {
-      return React.cloneElement(child as React.ReactElement, {
-        children: renderTextWithRefs(child.props.children, refs),
-      });
+    if (React.isValidElement(child)) {
+      const element = child as React.ReactElement<{ children?: React.ReactNode }>;
+      if (element.props.children) {
+        return React.cloneElement(element, {
+          children: renderTextWithRefs(element.props.children, refs),
+        });
+      }
     }
     return child;
   });
