@@ -93,7 +93,10 @@ const getTextContent = (children: React.ReactNode): string => {
   return React.Children.toArray(children)
     .map((child) => {
       if (typeof child === "string" || typeof child === "number") return child.toString();
-      if (React.isValidElement(child) && child.props.children) return getTextContent(child.props.children);
+      if (React.isValidElement(child)) {
+        const element = child as React.ReactElement<{ children?: React.ReactNode }>;
+        if (element.props.children) return getTextContent(element.props.children);
+      }
       return "";
     })
     .join("");
