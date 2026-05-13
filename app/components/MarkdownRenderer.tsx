@@ -11,23 +11,27 @@ interface MarkdownRendererProps {
 const processReferences = (text: string, refs: Record<string, string>) => {
   if (typeof text !== "string") return text;
 
-  // Improved Regex:
-  // 1. Negative lookbehind (?<![\s:\-\d]) ensures the number isn't preceded by space, colon, hyphen, or another digit
-  //    This avoids catching "4:23", "24-25", "Verse 3", "300"
-  // 2. (\d{1,2}) captures 1-2 digits
-  // 3. Lookahead (?=[.,:;\])\s]|$) ensures it's followed by punctuation, bracket, space, or end of string
-  const refRegex = /(?<![\s:\-\d])(\d{1,2})(?=[.,:;\])\s]|$)/gu;
+  // Improved Regex (Cross-browser compatible, avoiding lookbehinds which break older Safari):
+  // 1. ([^\s:\-\d]) captures the preceding character. We ensure it's not a space, colon, hyphen, or digit.
+  //    This avoids catching the number in "4:23", "24-25", "Verse 3", "300"
+  // 2. (\d{1,2}) captures 1-2 digits (the actual reference number).
+  // 3. Lookahead (?=[.,:;\])\s]|$) ensures it's followed by punctuation, bracket, space, or end of string.
+  const refRegex = /([^\s:\-\d])(\d{1,2})(?=[.,:;\])\s]|$)/gu;
   
   const parts = [];
   let lastIndex = 0;
   let match;
 
   while ((match = refRegex.exec(text)) !== null) {
-    const refNum = match[1];
+    const precedingChar = match[1];
+    const refNum = match[2];
     
-    // Push preceding text
+    // Push preceding text (everything up to the match index, PLUS the preceding character)
     if (match.index > lastIndex) {
-      parts.push(text.substring(lastIndex, match.index));
+      parts.push(text.substring(lastIndex, match.index) + precedingChar);
+    } else {
+      // Edge case: match is at the very beginning of the string
+      parts.push(precedingChar);
     }
 
     // Push the reference as a specialized component if it exists in our references map
