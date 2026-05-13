@@ -14,9 +14,9 @@ const processReferences = (text: string, refs: Record<string, string>) => {
   // Improved Regex (Cross-browser compatible, avoiding lookbehinds which break older Safari):
   // 1. ([^\s:\-\d]) captures the preceding character. We ensure it's not a space, colon, hyphen, or digit.
   //    This avoids catching the number in "4:23", "24-25", "Verse 3", "300"
-  // 2. (\d{1,2}) captures 1-2 digits (the actual reference number).
+  // 2. (\d{1,3}) captures 1-3 digits (the actual reference number).
   // 3. Lookahead (?=[.,:;\])\s]|$) ensures it's followed by punctuation, bracket, space, or end of string.
-  const refRegex = /([^\s:\-\d])(\d{1,2})(?=[.,:;\])\s]|$)/gu;
+  const refRegex = /([^\s:\-\d])(\d{1,3})(?=[.,:;\])\s]|$)/gu;
   
   const parts = [];
   let lastIndex = 0;
@@ -37,16 +37,16 @@ const processReferences = (text: string, refs: Record<string, string>) => {
     // Push the reference as a specialized component if it exists in our references map
     if (refs[refNum]) {
       parts.push(
-        <span key={`${refNum}-${match.index}`} className="group relative inline-block">
-          <sup className="text-[var(--color-penance-purple)] font-bold text-[0.75em] cursor-help px-0.5 hover:text-[var(--color-pentecost-red)] transition-colors">
+        <span key={`${refNum}-${match.index}`} className="group relative inline-block mx-px">
+          <sup className="text-[var(--color-penance-purple)] font-bold text-[0.7em] cursor-help px-0.5 hover:text-[var(--color-pentecost-red)] transition-colors vertical-align-baseline relative top-[-0.4em]">
             {refNum}
           </sup>
-          <span className="invisible group-hover:visible absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-64 p-3 bg-[var(--color-ivory-dark)] border border-[var(--color-gold)] rounded shadow-xl text-xs text-[var(--color-text-secondary)] leading-relaxed z-[100] transition-opacity opacity-0 group-hover:opacity-100 backdrop-blur-sm">
-            <span className="block font-bold text-[var(--color-burgundy)] mb-1 border-b border-[var(--color-gold)] border-opacity-20 pb-1">
+          <span className="invisible group-hover:visible absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-72 p-3 bg-[var(--color-ivory-dark)] border border-[var(--color-gold)] rounded-lg shadow-2xl text-xs text-[var(--color-text-secondary)] font-normal leading-relaxed z-[100] transition-all duration-200 opacity-0 group-hover:opacity-100 backdrop-blur-md">
+            <span className="block font-bold text-[var(--color-burgundy)] mb-1.5 border-b border-[var(--color-gold)] border-opacity-30 pb-1.5 uppercase tracking-wider text-[10px]">
               Chú thích {refNum}
             </span>
             {refs[refNum]}
-            <span className="absolute top-full left-1/2 -translate-x-1/2 border-8 border-transparent border-t-[var(--color-gold)] opacity-20" />
+            <span className="absolute top-full left-1/2 -translate-x-1/2 border-8 border-transparent border-t-[var(--color-gold)] opacity-40" />
           </span>
         </span>
       );
@@ -111,12 +111,18 @@ export default function MarkdownRenderer({ content, referencesContent }: Markdow
   const refsMap = useMemo(() => {
     if (!referencesContent) return {};
     const map: Record<string, string> = {};
-    const lines = referencesContent.split("\n");
-    lines.forEach((line) => {
-      const match = line.match(/^(\d+)\.\s+(.+)$/);
-      if (match) {
-        map[match[1]] = match[2].split(", http")[0]; // Clean up URL for tooltip
-      }
+    const lines = referencesContent
+      .split("\n")
+      .filter((line) => line.trim().length > 0 && !line.startsWith("## "));
+
+    lines.forEach((line, index) => {
+      // The reference number is based on the 1-based index in the list,
+      // matching the logic in References.tsx
+      const refNum = (index + 1).toString();
+      
+      // Clean up the line (remove existing leading numbers and extract title)
+      const cleanLine = line.replace(/^\d+\.\s*/, "");
+      map[refNum] = cleanLine.split(", http")[0]; // Clean up URL for tooltip
     });
     return map;
   }, [referencesContent]);
